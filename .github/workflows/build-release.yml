@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Compile Android Release APKs
+    name: Compile Android APKs
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -27,22 +27,17 @@ jobs:
       - name: Grant Execute Permission to Gradlew
         run: chmod +x gradlew
 
-      - name: Compile Release APKs
-        run: ./gradlew assembleRelease
+      - name: Compile Debug APKs (signed, installable via ADB)
+        run: ./gradlew assembleDebug
 
-      - name: Organize APK Artifacts
+      - name: Organize Debug APK Artifacts
         run: |
           mkdir -p release-apks
-          # Copy and rename flavor APKs to prevent overriding and for clarity
-          if [ -f app/build/outputs/apk/standalone/release/fsclock.apk ]; then
-            cp app/build/outputs/apk/standalone/release/fsclock.apk release-apks/fsclock-standalone-v2.1.apk
-          fi
-          if [ -f app/build/outputs/apk/google/release/fsclock.apk ]; then
-            cp app/build/outputs/apk/google/release/fsclock.apk release-apks/fsclock-google-v2.1.apk
-          fi
-          if [ -f app/build/outputs/apk/amazon/release/fsclock.apk ]; then
-            cp app/build/outputs/apk/amazon/release/fsclock.apk release-apks/fsclock-amazon-v2.1.apk
-          fi
+          find app/build/outputs/apk -name "*.apk" | while read f; do
+            flavor=$(echo "$f" | grep -oP '(?<=apk/)[^/]+')
+            cp "$f" "release-apks/fsclock-${flavor}-debug-v2.1.apk"
+          done
+          ls -lh release-apks/
 
       - name: Upload APKs to Artifacts
         uses: actions/upload-artifact@v4
@@ -50,14 +45,23 @@ jobs:
           name: fsclock-apks
           path: release-apks/
 
+      - name: Compile Release APKs (for tagged releases)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: ./gradlew assembleRelease
+
+      - name: Organize Release APK Artifacts
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          find app/build/outputs/apk -name "*release*.apk" | while read f; do
+            flavor=$(echo "$f" | grep -oP '(?<=apk/)[^/]+(?=/release)')
+            cp "$f" "release-apks/fsclock-${flavor}-v2.1.apk"
+          done
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            release-apks/fsclock-standalone-v2.1.apk
-            release-apks/fsclock-google-v2.1.apk
-            release-apks/fsclock-amazon-v2.1.apk
+          files: release-apks/*.apk
           draft: false
           prerelease: false
         env:
