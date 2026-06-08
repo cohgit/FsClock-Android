@@ -789,8 +789,8 @@ public class FsClockView extends FrameLayout {
     }
 
     private void fetchWeather() {
-        final boolean showWeather = mSharedPref.getBoolean("show-weather", false);
-        final String city = mSharedPref.getString("weather-city", "");
+        final boolean showWeather = mSharedPref.getBoolean("show-weather", true);
+        final String city = mSharedPref.getString("weather-city", "Santiago");
 
         if (!showWeather || city.trim().isEmpty()) {
             post(new Runnable() {

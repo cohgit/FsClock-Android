@@ -282,8 +282,8 @@ public class BaseSettingsActivity extends AppCompatActivity {
         mColorBack = mSharedPref.getInt("color-back", 0xff000000);
         mBackStretch = mSharedPref.getBoolean("back-stretch", false);
         mCheckBoxShowAlarms.setChecked(mSharedPref.getBoolean("show-alarms", false));
-        mCheckBoxShowWeather.setChecked(mSharedPref.getBoolean("show-weather", false));
-        mEditTextWeatherCity.setText(mSharedPref.getString("weather-city", ""));
+        mCheckBoxShowWeather.setChecked(mSharedPref.getBoolean("show-weather", true));
+        mEditTextWeatherCity.setText(mSharedPref.getString("weather-city", "Santiago"));
         mCheckBoxWeatherFahrenheit.setChecked(mSharedPref.getBoolean("weather-use-fahrenheit", false));
 
         // init radio button behavior
