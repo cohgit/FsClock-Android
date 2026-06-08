@@ -987,6 +987,8 @@ public class FsClockView extends FrameLayout {
             if (idx >= 0 && idx < weather.hourly.temperature_2m.length) {
                 String isoTime = weather.hourly.time[idx];
                 double temp = weather.hourly.temperature_2m[idx];
+                boolean hasWeatherCode = weather.hourly.weather_code != null && weather.hourly.weather_code.length > idx;
+                boolean hasHumidity = weather.hourly.relative_humidity_2m != null && weather.hourly.relative_humidity_2m.length > idx;
 
                 String hourStr = formatHourString(isoTime, mFormat24hrs);
                 if (offset == 0) {
@@ -1002,18 +1004,34 @@ public class FsClockView extends FrameLayout {
 
                 TextView tvHour = new TextView(getContext());
                 tvHour.setText(hourStr);
-                tvHour.setTextSize(16);
                 tvHour.setGravity(Gravity.CENTER);
                 tvHour.setTextColor(mColorEvents);
                 if (mFontEvents != null) tvHour.setTypeface(mFontEvents);
                 if (offset == 0) {
+                    tvHour.setTextSize(18);
                     tvHour.setTypeface(mFontEvents, Typeface.BOLD);
+                } else {
+                    tvHour.setTextSize(14);
                 }
                 itemLayout.addView(tvHour);
 
+                // Weather Icon
+                if (hasWeatherCode) {
+                    int wCode = weather.hourly.weather_code[idx];
+                    int iconRes = getWeatherIconResource(wCode);
+                    ImageView ivWeather = new ImageView(getContext());
+                    ivWeather.setImageResource(iconRes);
+                    int iconSize = offset == 0 ? dpToPx(32) : dpToPx(24);
+                    LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(iconSize, iconSize);
+                    iconParams.topMargin = dpToPx(4);
+                    iconParams.bottomMargin = dpToPx(4);
+                    ivWeather.setLayoutParams(iconParams);
+                    ivWeather.setColorFilter(mColorEvents, PorterDuff.Mode.SRC_ATOP);
+                    itemLayout.addView(ivWeather);
+                }
+
                 TextView tvTemp = new TextView(getContext());
                 tvTemp.setText(tempStr);
-                tvTemp.setTextSize(20);
                 tvTemp.setGravity(Gravity.CENTER);
                 tvTemp.setTextColor(mColorEvents);
                 if (mFontEvents != null) {
@@ -1021,7 +1039,33 @@ public class FsClockView extends FrameLayout {
                 } else {
                     tvTemp.setTypeface(null, Typeface.BOLD);
                 }
+                if (offset == 0) {
+                    tvTemp.setTextSize(24);
+                } else {
+                    tvTemp.setTextSize(18);
+                }
                 itemLayout.addView(tvTemp);
+
+                // Humidity
+                if (hasHumidity) {
+                    int humidityVal = weather.hourly.relative_humidity_2m[idx];
+                    TextView tvHumidity = new TextView(getContext());
+                    tvHumidity.setText(humidityVal + "%");
+                    tvHumidity.setGravity(Gravity.CENTER);
+                    tvHumidity.setTextColor(mColorEvents);
+                    if (mFontEvents != null) tvHumidity.setTypeface(mFontEvents);
+                    if (offset == 0) {
+                        tvHumidity.setTextSize(14);
+                        tvHumidity.setTypeface(mFontEvents, Typeface.BOLD);
+                    } else {
+                        tvHumidity.setTextSize(11);
+                    }
+                    LinearLayout.LayoutParams humidityParams = new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                    humidityParams.topMargin = dpToPx(2);
+                    tvHumidity.setLayoutParams(humidityParams);
+                    itemLayout.addView(tvHumidity);
+                }
 
                 mWeatherHourlyLayout.addView(itemLayout);
 
@@ -1060,6 +1104,29 @@ public class FsClockView extends FrameLayout {
         }
     }
 
+    private int getWeatherIconResource(int weatherCode) {
+        if (weatherCode == 0) {
+            return R.drawable.ic_weather_clear;
+        } else if (weatherCode >= 1 && weatherCode <= 3) {
+            return R.drawable.ic_weather_clouds;
+        } else if (weatherCode == 45 || weatherCode == 48) {
+            return R.drawable.ic_weather_fog;
+        } else if (weatherCode >= 51 && weatherCode <= 57) {
+            return R.drawable.ic_weather_drizzle;
+        } else if (weatherCode >= 61 && weatherCode <= 67) {
+            return R.drawable.ic_weather_rain;
+        } else if (weatherCode >= 80 && weatherCode <= 82) {
+            return R.drawable.ic_weather_rain;
+        } else if (weatherCode >= 71 && weatherCode <= 77) {
+            return R.drawable.ic_weather_snow;
+        } else if (weatherCode >= 85 && weatherCode <= 86) {
+            return R.drawable.ic_weather_snow;
+        } else if (weatherCode >= 95 && weatherCode <= 99) {
+            return R.drawable.ic_weather_storm;
+        }
+        return R.drawable.ic_weather_clear;
+    }
+
     private static class GeocodingResponse {
         Result[] results;
         static class Result {
@@ -1079,6 +1146,8 @@ public class FsClockView extends FrameLayout {
         static class Hourly {
             String[] time;
             double[] temperature_2m;
+            int[] weather_code;
+            int[] relative_humidity_2m;
         }
     }
 
@@ -1103,7 +1172,7 @@ public class FsClockView extends FrameLayout {
 
     private WeatherResponse fetchForecast(float lat, float lon, boolean useFahrenheit) throws Exception {
         String unitParam = useFahrenheit ? "&temperature_unit=fahrenheit" : "";
-        String urlStr = "http://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true&hourly=temperature_2m&timezone=auto&past_days=1" + unitParam;
+        String urlStr = "http://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true&hourly=temperature_2m,weather_code,relative_humidity_2m&timezone=auto&past_days=1" + unitParam;
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
