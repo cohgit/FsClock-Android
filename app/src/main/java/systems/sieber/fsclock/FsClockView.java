@@ -85,6 +85,9 @@ public class FsClockView extends FrameLayout {
     View mWeatherView;
     TextView mWeatherText;
     ImageView mWeatherImage;
+    View mWeatherContainer;
+    TextView mWeatherCityText;
+    TextView mWeatherHourlyText;
     DigitalClockView mDigitalClock;
     DateView mDateText;
     TextView mTextViewEvents;
@@ -143,6 +146,9 @@ public class FsClockView extends FrameLayout {
         mWeatherText = findViewById(R.id.textViewWeather);
         mWeatherImage = findViewById(R.id.imageViewWeather);
         mWeatherImage.setImageResource(R.drawable.ic_thermostat_white_24dp);
+        mWeatherContainer = findViewById(R.id.linearLayoutWeatherContainer);
+        mWeatherCityText = findViewById(R.id.textViewWeatherCity);
+        mWeatherHourlyText = findViewById(R.id.textViewWeatherHourly);
 
         // init settings
         mSharedPref = c.getSharedPreferences(SettingsActivity.SHARED_PREF_DOMAIN, Context.MODE_PRIVATE);
@@ -485,6 +491,8 @@ public class FsClockView extends FrameLayout {
         mAlarmImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
         mWeatherText.setTextColor(colorEvents);
         mWeatherImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
+        if (mWeatherCityText != null) mWeatherCityText.setTextColor(colorEvents);
+        if (mWeatherHourlyText != null) mWeatherHourlyText.setTextColor(colorEvents);
 
         // init custom analog color
         if(mSharedPref.getBoolean("own-color-analog-clock-face", false)) {
@@ -797,6 +805,9 @@ public class FsClockView extends FrameLayout {
                 @Override
                 public void run() {
                     mWeatherView.setVisibility(View.GONE);
+                    if (mWeatherContainer != null) {
+                        mWeatherContainer.setVisibility(View.GONE);
+                    }
                 }
             });
             return;
@@ -806,11 +817,21 @@ public class FsClockView extends FrameLayout {
             @Override
             public void run() {
                 mWeatherView.setVisibility(View.VISIBLE);
+                if (mWeatherContainer != null) {
+                    mWeatherContainer.setVisibility(View.VISIBLE);
+                }
                 String cachedTemp = mSharedPref.getString("weather-temp", "");
+                String cachedHourly = mSharedPref.getString("weather-hourly", "");
                 if (!cachedTemp.isEmpty()) {
                     mWeatherText.setText(cachedTemp);
                 } else {
                     mWeatherText.setText("--");
+                }
+                if (mWeatherHourlyText != null && !cachedHourly.isEmpty()) {
+                    mWeatherHourlyText.setText(cachedHourly);
+                }
+                if (mWeatherCityText != null) {
+                    mWeatherCityText.setText(city);
                 }
             }
         });
@@ -856,9 +877,11 @@ public class FsClockView extends FrameLayout {
                         double temp = weather.current_weather.temperature;
                         String unit = useFahrenheit ? "°F" : "°C";
                         final String tempStr = String.format(Locale.getDefault(), "%.1f%s", temp, unit);
+                        final String hourlyStr = buildHourlyForecastString(weather, unit);
 
                         SharedPreferences.Editor editor = mSharedPref.edit();
                         editor.putString("weather-temp", tempStr);
+                        editor.putString("weather-hourly", hourlyStr);
                         editor.putLong("weather-last-update", System.currentTimeMillis());
                         editor.apply();
 
@@ -866,6 +889,12 @@ public class FsClockView extends FrameLayout {
                             @Override
                             public void run() {
                                 mWeatherText.setText(tempStr);
+                                if (mWeatherHourlyText != null) {
+                                    mWeatherHourlyText.setText(hourlyStr);
+                                }
+                                if (mWeatherCityText != null) {
+                                    mWeatherCityText.setText(city);
+                                }
                             }
                         });
                     }
@@ -875,16 +904,63 @@ public class FsClockView extends FrameLayout {
                         @Override
                         public void run() {
                             String lastTemp = mSharedPref.getString("weather-temp", "");
+                            String lastHourly = mSharedPref.getString("weather-hourly", "");
                             if (!lastTemp.isEmpty()) {
                                 mWeatherText.setText(lastTemp);
                             } else {
                                 mWeatherText.setText("--");
+                            }
+                            if (mWeatherHourlyText != null && !lastHourly.isEmpty()) {
+                                mWeatherHourlyText.setText(lastHourly);
+                            }
+                            if (mWeatherCityText != null) {
+                                mWeatherCityText.setText(city);
                             }
                         }
                     });
                 }
             }
         }).start();
+    }
+
+    private String buildHourlyForecastString(WeatherResponse weather, String unit) {
+        if (weather.hourly == null || weather.hourly.time == null || weather.hourly.temperature_2m == null) {
+            return "";
+        }
+
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:00", Locale.US);
+        String currentHourStr = sdf.format(cal.getTime());
+
+        int currentIndex = -1;
+        for (int i = 0; i < weather.hourly.time.length; i++) {
+            if (weather.hourly.time[i].substring(0, 13).equalsIgnoreCase(currentHourStr.substring(0, 13))) {
+                currentIndex = i;
+                break;
+            }
+        }
+
+        if (currentIndex == -1) {
+            currentIndex = cal.get(Calendar.HOUR_OF_DAY);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        int[] offsets = {-2, -1, 0, 1, 2};
+        String[] labels = {"-2h", "-1h", "Ahora", "+1h", "+2h"};
+
+        for (int k = 0; k < offsets.length; k++) {
+            int idx = currentIndex + offsets[k];
+            if (idx >= 0 && idx < weather.hourly.temperature_2m.length) {
+                double temp = weather.hourly.temperature_2m[idx];
+                String tempFormatted = String.format(Locale.getDefault(), "%.0f", temp);
+
+                if (k > 0) {
+                    sb.append("  |  ");
+                }
+                sb.append(labels[k]).append(": ").append(tempFormatted).append(unit);
+            }
+        }
+        return sb.toString();
     }
 
     private static class GeocodingResponse {
@@ -898,9 +974,14 @@ public class FsClockView extends FrameLayout {
 
     private static class WeatherResponse {
         CurrentWeather current_weather;
+        Hourly hourly;
         static class CurrentWeather {
             double temperature;
             int weathercode;
+        }
+        static class Hourly {
+            String[] time;
+            double[] temperature_2m;
         }
     }
 
@@ -925,7 +1006,7 @@ public class FsClockView extends FrameLayout {
 
     private WeatherResponse fetchForecast(float lat, float lon, boolean useFahrenheit) throws Exception {
         String unitParam = useFahrenheit ? "&temperature_unit=fahrenheit" : "";
-        String urlStr = "http://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true" + unitParam;
+        String urlStr = "http://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true&hourly=temperature_2m&timezone=auto" + unitParam;
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
