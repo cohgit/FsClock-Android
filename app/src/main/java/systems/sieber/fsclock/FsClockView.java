@@ -998,11 +998,11 @@ public class FsClockView extends FrameLayout {
                 LinearLayout itemLayout = new LinearLayout(getContext());
                 itemLayout.setOrientation(LinearLayout.VERTICAL);
                 itemLayout.setGravity(Gravity.CENTER);
-                itemLayout.setPadding(dpToPx(16), dpToPx(6), dpToPx(16), dpToPx(6));
+                itemLayout.setPadding(dpToPx(2), dpToPx(6), dpToPx(2), dpToPx(6));
 
                 TextView tvHour = new TextView(getContext());
                 tvHour.setText(hourStr);
-                tvHour.setTextSize(14);
+                tvHour.setTextSize(16);
                 tvHour.setGravity(Gravity.CENTER);
                 tvHour.setTextColor(mColorEvents);
                 if (mFontEvents != null) tvHour.setTypeface(mFontEvents);
@@ -1013,7 +1013,7 @@ public class FsClockView extends FrameLayout {
 
                 TextView tvTemp = new TextView(getContext());
                 tvTemp.setText(tempStr);
-                tvTemp.setTextSize(18);
+                tvTemp.setTextSize(20);
                 tvTemp.setGravity(Gravity.CENTER);
                 tvTemp.setTextColor(mColorEvents);
                 if (mFontEvents != null) {
@@ -1036,11 +1036,23 @@ public class FsClockView extends FrameLayout {
             mWeatherScrollView.post(new Runnable() {
                 @Override
                 public void run() {
-                    if (mWeatherHourlyLayout != null && mWeatherHourlyLayout.getChildCount() > targetIdx) {
-                        View currentHourView = mWeatherHourlyLayout.getChildAt(targetIdx);
-                        if (currentHourView != null) {
-                            int scrollX = currentHourView.getLeft() - (mWeatherScrollView.getWidth() / 2) + (currentHourView.getWidth() / 2);
-                            mWeatherScrollView.scrollTo(scrollX, 0);
+                    if (mWeatherHourlyLayout != null) {
+                        int svWidth = mWeatherScrollView.getWidth();
+                        if (svWidth > 0) {
+                            int itemWidth = svWidth / 9;
+                            int childCount = mWeatherHourlyLayout.getChildCount();
+                            for (int i = 0; i < childCount; i++) {
+                                View child = mWeatherHourlyLayout.getChildAt(i);
+                                android.view.ViewGroup.LayoutParams params = child.getLayoutParams();
+                                if (params != null) {
+                                    params.width = itemWidth;
+                                    child.setLayoutParams(params);
+                                }
+                            }
+                            if (childCount > targetIdx) {
+                                int scrollX = (targetIdx - 4) * itemWidth;
+                                mWeatherScrollView.scrollTo(scrollX, 0);
+                            }
                         }
                     }
                 }
@@ -1091,7 +1103,7 @@ public class FsClockView extends FrameLayout {
 
     private WeatherResponse fetchForecast(float lat, float lon, boolean useFahrenheit) throws Exception {
         String unitParam = useFahrenheit ? "&temperature_unit=fahrenheit" : "";
-        String urlStr = "http://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true&hourly=temperature_2m&timezone=auto" + unitParam;
+        String urlStr = "http://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true&hourly=temperature_2m&timezone=auto&past_days=1" + unitParam;
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
