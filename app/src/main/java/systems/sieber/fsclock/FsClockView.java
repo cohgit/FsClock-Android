@@ -40,6 +40,11 @@ import androidx.core.content.res.ResourcesCompat;
 
 import com.google.gson.Gson;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.time.chrono.HijrahDate;
@@ -77,6 +82,9 @@ public class FsClockView extends FrameLayout {
     View mAlarmView;
     TextView mAlarmText;
     ImageView mAlarmImage;
+    View mWeatherView;
+    TextView mWeatherText;
+    ImageView mWeatherImage;
     DigitalClockView mDigitalClock;
     DateView mDateText;
     TextView mTextViewEvents;
@@ -92,6 +100,7 @@ public class FsClockView extends FrameLayout {
     Timer mTimerCalendarUpdate;
     Timer mTimerCheckEvent;
     Timer mTimerBurnInPreventionRotation;
+    Timer mTimerWeather;
 
     TextToSpeech mTts;
     Event[] mEvents;
@@ -130,6 +139,10 @@ public class FsClockView extends FrameLayout {
         mAlarmText = findViewById(R.id.textViewAlarm);
         mAlarmImage = findViewById(R.id.imageViewAlarm);
         mAlarmImage.setImageResource(R.drawable.ic_alarm_white_24dp);
+        mWeatherView = findViewById(R.id.linearLayoutWeather);
+        mWeatherText = findViewById(R.id.textViewWeather);
+        mWeatherImage = findViewById(R.id.imageViewWeather);
+        mWeatherImage.setImageResource(R.drawable.ic_thermostat_white_24dp);
 
         // init settings
         mSharedPref = c.getSharedPreferences(SettingsActivity.SHARED_PREF_DOMAIN, Context.MODE_PRIVATE);
@@ -346,14 +359,23 @@ public class FsClockView extends FrameLayout {
             }
         };
 
+        TimerTask taskWeather = new TimerTask() {
+            @Override
+            public void run() {
+                fetchWeather();
+            }
+        };
+
         mTimerAnalogClock = new Timer(false);
         mTimerCalendarUpdate = new Timer(false);
         mTimerCheckEvent = new Timer(false);
         mTimerBurnInPreventionRotation = new Timer(false);
+        mTimerWeather = new Timer(false);
         mTimerAnalogClock.schedule(taskAnalogClock, 0, mHighRefreshRate ? 100 : 1000);
         mTimerCalendarUpdate.schedule(taskCalendarUpdate, 0, 10000);
         mTimerCheckEvent.schedule(taskCheckEvent, 0, 1000);
         mTimerBurnInPreventionRotation.schedule(taskBurnInAvoidRotation, 1000, BURN_IN_PREVENTION_CHANGE);
+        mTimerWeather.schedule(taskWeather, 0, 15 * 60 * 1000);
     }
 
     void loadSettings() {
@@ -461,6 +483,8 @@ public class FsClockView extends FrameLayout {
         mBatteryImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
         mAlarmText.setTextColor(colorEvents);
         mAlarmImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
+        mWeatherText.setTextColor(colorEvents);
+        mWeatherImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
 
         // init custom analog color
         if(mSharedPref.getBoolean("own-color-analog-clock-face", false)) {
@@ -752,11 +776,169 @@ public class FsClockView extends FrameLayout {
         mTimerCheckEvent.purge();
         mTimerBurnInPreventionRotation.cancel();
         mTimerBurnInPreventionRotation.purge();
+        if (mTimerWeather != null) {
+            mTimerWeather.cancel();
+            mTimerWeather.purge();
+        }
     }
 
     protected void resume() {
         loadSettings();
         initLayoutListener();
         startTimer();
+    }
+
+    private void fetchWeather() {
+        final boolean showWeather = mSharedPref.getBoolean("show-weather", false);
+        final String city = mSharedPref.getString("weather-city", "");
+
+        if (!showWeather || city.trim().isEmpty()) {
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    mWeatherView.setVisibility(View.GONE);
+                }
+            });
+            return;
+        }
+
+        post(new Runnable() {
+            @Override
+            public void run() {
+                mWeatherView.setVisibility(View.VISIBLE);
+                String cachedTemp = mSharedPref.getString("weather-temp", "");
+                if (!cachedTemp.isEmpty()) {
+                    mWeatherText.setText(cachedTemp);
+                } else {
+                    mWeatherText.setText("--");
+                }
+            }
+        });
+
+        // Caching: only fetch if last update was more than 15 minutes ago, and the city hasn't changed
+        final long lastUpdate = mSharedPref.getLong("weather-last-update", 0);
+        final long now = System.currentTimeMillis();
+        final String cachedTemp = mSharedPref.getString("weather-temp", "");
+        String cachedCity = mSharedPref.getString("weather-cached-city", "");
+        if (city.equalsIgnoreCase(cachedCity) && now - lastUpdate < 15 * 60 * 1000 && !cachedTemp.isEmpty()) {
+            return;
+        }
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    float lat = mSharedPref.getFloat("weather-lat", 999f);
+                    float lon = mSharedPref.getFloat("weather-lon", 999f);
+                    String cachedCity = mSharedPref.getString("weather-cached-city", "");
+
+                    // If city changed or no cached coordinates, geocode it
+                    if (!city.equalsIgnoreCase(cachedCity) || lat == 999f || lon == 999f) {
+                        GeocodingResponse geo = geocodeCity(city);
+                        if (geo != null && geo.results != null && geo.results.length > 0) {
+                            lat = geo.results[0].latitude;
+                            lon = geo.results[0].longitude;
+
+                            SharedPreferences.Editor editor = mSharedPref.edit();
+                            editor.putFloat("weather-lat", lat);
+                            editor.putFloat("weather-lon", lon);
+                            editor.putString("weather-cached-city", city);
+                            editor.apply();
+                        } else {
+                            throw new Exception("City not found");
+                        }
+                    }
+
+                    // Fetch forecast weather
+                    boolean useFahrenheit = mSharedPref.getBoolean("weather-use-fahrenheit", false);
+                    WeatherResponse weather = fetchForecast(lat, lon, useFahrenheit);
+                    if (weather != null && weather.current_weather != null) {
+                        double temp = weather.current_weather.temperature;
+                        String unit = useFahrenheit ? "°F" : "°C";
+                        final String tempStr = String.format(Locale.getDefault(), "%.1f%s", temp, unit);
+
+                        SharedPreferences.Editor editor = mSharedPref.edit();
+                        editor.putString("weather-temp", tempStr);
+                        editor.putLong("weather-last-update", System.currentTimeMillis());
+                        editor.apply();
+
+                        post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mWeatherText.setText(tempStr);
+                            }
+                        });
+                    }
+                } catch (Exception e) {
+                    Log.e("FsClockWeather", "Error fetching weather", e);
+                    post(new Runnable() {
+                        @Override
+                        public void run() {
+                            String lastTemp = mSharedPref.getString("weather-temp", "");
+                            if (!lastTemp.isEmpty()) {
+                                mWeatherText.setText(lastTemp);
+                            } else {
+                                mWeatherText.setText("--");
+                            }
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
+
+    private static class GeocodingResponse {
+        Result[] results;
+        static class Result {
+            float latitude;
+            float longitude;
+            String name;
+        }
+    }
+
+    private static class WeatherResponse {
+        CurrentWeather current_weather;
+        static class CurrentWeather {
+            double temperature;
+            int weathercode;
+        }
+    }
+
+    private GeocodingResponse geocodeCity(String cityName) throws Exception {
+        String encodedCity = Uri.encode(cityName);
+        String urlStr = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodedCity + "&count=1&language=en&format=json";
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(10000);
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            GeocodingResponse response = new Gson().fromJson(in, GeocodingResponse.class);
+            in.close();
+            return response;
+        }
+        return null;
+    }
+
+    private WeatherResponse fetchForecast(float lat, float lon, boolean useFahrenheit) throws Exception {
+        String unitParam = useFahrenheit ? "&temperature_unit=fahrenheit" : "";
+        String urlStr = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true" + unitParam;
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(10000);
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            WeatherResponse response = new Gson().fromJson(in, WeatherResponse.class);
+            in.close();
+            return response;
+        }
+        return null;
     }
 }

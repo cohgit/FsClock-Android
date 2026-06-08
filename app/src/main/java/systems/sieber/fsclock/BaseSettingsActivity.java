@@ -139,6 +139,9 @@ public class BaseSettingsActivity extends AppCompatActivity {
     boolean mBackStretch;
     CheckBox mCheckBoxShowAlarms;
     Button mButtonNewEvent;
+    CheckBox mCheckBoxShowWeather;
+    EditText mEditTextWeatherCity;
+    CheckBox mCheckBoxWeatherFahrenheit;
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -240,6 +243,9 @@ public class BaseSettingsActivity extends AppCompatActivity {
         mColorPreviewBack = findViewById(R.id.viewColorPreviewBack);
         mCheckBoxShowAlarms = findViewById(R.id.checkBoxShowAlarms);
         mButtonNewEvent = findViewById(R.id.buttonNewEvent);
+        mCheckBoxShowWeather = findViewById(R.id.checkBoxShowWeather);
+        mEditTextWeatherCity = findViewById(R.id.editTextWeatherCity);
+        mCheckBoxWeatherFahrenheit = findViewById(R.id.checkBoxWeatherFahrenheit);
 
         // init settings
         mSharedPref = getSharedPreferences(SHARED_PREF_DOMAIN, Context.MODE_PRIVATE);
@@ -276,6 +282,9 @@ public class BaseSettingsActivity extends AppCompatActivity {
         mColorBack = mSharedPref.getInt("color-back", 0xff000000);
         mBackStretch = mSharedPref.getBoolean("back-stretch", false);
         mCheckBoxShowAlarms.setChecked(mSharedPref.getBoolean("show-alarms", false));
+        mCheckBoxShowWeather.setChecked(mSharedPref.getBoolean("show-weather", false));
+        mEditTextWeatherCity.setText(mSharedPref.getString("weather-city", ""));
+        mCheckBoxWeatherFahrenheit.setChecked(mSharedPref.getBoolean("weather-use-fahrenheit", false));
 
         // init radio button behavior
         mRadioButtonGregorianCalendar.setOnClickListener(new View.OnClickListener() {
@@ -427,6 +436,9 @@ public class BaseSettingsActivity extends AppCompatActivity {
         mSpinnerDesignBack.setEnabled(state);
         mCheckBoxShowAlarms.setEnabled(state);
         mButtonNewEvent.setEnabled(state);
+        mCheckBoxShowWeather.setEnabled(state);
+        mEditTextWeatherCity.setEnabled(state);
+        mCheckBoxWeatherFahrenheit.setEnabled(state);
     }
 
     private void initFontSpinner() {
@@ -878,6 +890,9 @@ public class BaseSettingsActivity extends AppCompatActivity {
         editor.putInt("color-back", mColorBack);
         editor.putBoolean("back-stretch", mBackStretch);
         editor.putBoolean("show-alarms", mCheckBoxShowAlarms.isChecked());
+        editor.putBoolean("show-weather", mCheckBoxShowWeather.isChecked());
+        editor.putString("weather-city", mEditTextWeatherCity.getText().toString());
+        editor.putBoolean("weather-use-fahrenheit", mCheckBoxWeatherFahrenheit.isChecked());
 
         editor.apply();
     }

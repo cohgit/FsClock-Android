@@ -1,0 +1,64 @@
+name: Build & Release APKs
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compile Android Release APKs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant Execute Permission to Gradlew
+        run: chmod +x gradlew
+
+      - name: Compile Release APKs
+        run: ./gradlew assembleRelease
+
+      - name: Organize APK Artifacts
+        run: |
+          mkdir -p release-apks
+          # Copy and rename flavor APKs to prevent overriding and for clarity
+          if [ -f app/build/outputs/apk/standalone/release/fsclock.apk ]; then
+            cp app/build/outputs/apk/standalone/release/fsclock.apk release-apks/fsclock-standalone-v2.1.apk
+          fi
+          if [ -f app/build/outputs/apk/google/release/fsclock.apk ]; then
+            cp app/build/outputs/apk/google/release/fsclock.apk release-apks/fsclock-google-v2.1.apk
+          fi
+          if [ -f app/build/outputs/apk/amazon/release/fsclock.apk ]; then
+            cp app/build/outputs/apk/amazon/release/fsclock.apk release-apks/fsclock-amazon-v2.1.apk
+          fi
+
+      - name: Upload APKs to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fsclock-apks
+          path: release-apks/
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            release-apks/fsclock-standalone-v2.1.apk
+            release-apks/fsclock-google-v2.1.apk
+            release-apks/fsclock-amazon-v2.1.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

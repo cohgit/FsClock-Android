@@ -122,4 +122,8 @@
     <string name="digital_clock_color">Color del reloj digital</string>
     <string name="date_color">Color de fecha</string>
     <string name="event_color">Color del evento</string>
+    <string name="weather">Clima</string>
+    <string name="show_weather">Mostrar información del clima</string>
+    <string name="weather_city">Nombre de la ciudad</string>
+    <string name="use_fahrenheit">Usar Fahrenheit</string>
 </resources>

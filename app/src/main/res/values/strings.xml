@@ -135,4 +135,8 @@ Roboto Font Copyright (c) Christian Robertson. Licensed under the Apache License
     <string name="digital_clock_color">Digital Clock Color</string>
     <string name="date_color">Date Color</string>
     <string name="event_color">Event Color</string>
+    <string name="weather">Weather</string>
+    <string name="show_weather">Show weather info</string>
+    <string name="weather_city">City name</string>
+    <string name="use_fahrenheit">Use Fahrenheit</string>
 </resources>
