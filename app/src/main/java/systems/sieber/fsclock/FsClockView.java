@@ -906,7 +906,7 @@ public class FsClockView extends FrameLayout {
 
     private GeocodingResponse geocodeCity(String cityName) throws Exception {
         String encodedCity = Uri.encode(cityName);
-        String urlStr = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodedCity + "&count=1&language=en&format=json";
+        String urlStr = "http://geocoding-api.open-meteo.com/v1/search?name=" + encodedCity + "&count=1&language=en&format=json";
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
@@ -925,7 +925,7 @@ public class FsClockView extends FrameLayout {
 
     private WeatherResponse fetchForecast(float lat, float lon, boolean useFahrenheit) throws Exception {
         String unitParam = useFahrenheit ? "&temperature_unit=fahrenheit" : "";
-        String urlStr = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true" + unitParam;
+        String urlStr = "http://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true" + unitParam;
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
