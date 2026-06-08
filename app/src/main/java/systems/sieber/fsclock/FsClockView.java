@@ -954,7 +954,7 @@ public class FsClockView extends FrameLayout {
                 double temp = weather.hourly.temperature_2m[idx];
                 String tempFormatted = String.format(Locale.getDefault(), "%.0f", temp);
 
-                if (k > 0) {
+                if (sb.length() > 0) {
                     sb.append("  |  ");
                 }
                 sb.append(labels[k]).append(": ").append(tempFormatted).append(unit);
