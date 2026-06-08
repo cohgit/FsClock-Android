@@ -107,14 +107,21 @@
                     android:textSize="28sp"
                     android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/textViewWeatherHourly"
-                    android:layout_width="wrap_content"
+                <HorizontalScrollView
+                    android:id="@+id/horizontalScrollViewWeather"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="-- | -- | -- | -- | --"
-                    android:textColor="@color/colorDefaultClock"
-                    android:textSize="20sp"
-                    android:layout_marginTop="6dp" />
+                    android:layout_marginTop="8dp"
+                    android:scrollbars="none"
+                    android:overScrollMode="never">
+
+                    <LinearLayout
+                        android:id="@+id/linearLayoutWeatherHourly"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical" />
+                </HorizontalScrollView>
             </LinearLayout>
 
             <systems.sieber.fsclock.DigitalClockView
