@@ -118,21 +118,39 @@
                         android:textSize="28sp"
                         android:textStyle="bold" />
 
-                <HorizontalScrollView
-                    android:id="@+id/horizontalScrollViewWeather"
-                    android:layout_width="match_parent"
+                <LinearLayout
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:scrollbars="none"
-                    android:overScrollMode="never">
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp">
 
-                    <LinearLayout
-                        android:id="@+id/linearLayoutWeatherHourly"
+                    <ImageView
+                        android:id="@+id/imageViewWeatherIcon"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:layout_marginEnd="16dp"
+                        android:contentDescription="Weather Icon" />
+
+                    <TextView
+                        android:id="@+id/textViewWeatherTemp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical" />
-                </HorizontalScrollView>
+                        android:text="--°C"
+                        android:textColor="@color/colorDefaultClock"
+                        android:textSize="64sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/textViewWeatherHumidity"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="20dp"
+                        android:text="--%"
+                        android:textColor="@color/colorDefaultClock"
+                        android:textSize="28sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
                 </LinearLayout>
 
                 <systems.sieber.fsclock.DigitalClockView

@@ -88,8 +88,9 @@ public class FsClockView extends FrameLayout {
     ImageView mWeatherImage;
     View mWeatherContainer;
     TextView mWeatherCityText;
-    android.widget.HorizontalScrollView mWeatherScrollView;
-    android.widget.LinearLayout mWeatherHourlyLayout;
+    ImageView mWeatherLargeIcon;
+    TextView mWeatherLargeTemp;
+    TextView mWeatherLargeHumidity;
     DigitalClockView mDigitalClock;
     DateView mDateText;
     TextView mTextViewEvents;
@@ -151,8 +152,9 @@ public class FsClockView extends FrameLayout {
         mWeatherImage.setImageResource(R.drawable.ic_thermostat_white_24dp);
         mWeatherContainer = findViewById(R.id.linearLayoutWeatherContainer);
         mWeatherCityText = findViewById(R.id.textViewWeatherCity);
-        mWeatherScrollView = findViewById(R.id.horizontalScrollViewWeather);
-        mWeatherHourlyLayout = findViewById(R.id.linearLayoutWeatherHourly);
+        mWeatherLargeIcon = findViewById(R.id.imageViewWeatherIcon);
+        mWeatherLargeTemp = findViewById(R.id.textViewWeatherTemp);
+        mWeatherLargeHumidity = findViewById(R.id.textViewWeatherHumidity);
 
         // init settings
         mSharedPref = c.getSharedPreferences(SettingsActivity.SHARED_PREF_DOMAIN, Context.MODE_PRIVATE);
@@ -385,7 +387,7 @@ public class FsClockView extends FrameLayout {
         mTimerCalendarUpdate.schedule(taskCalendarUpdate, 0, 10000);
         mTimerCheckEvent.schedule(taskCheckEvent, 0, 1000);
         mTimerBurnInPreventionRotation.schedule(taskBurnInAvoidRotation, 1000, BURN_IN_PREVENTION_CHANGE);
-        mTimerWeather.schedule(taskWeather, 0, 15 * 60 * 1000);
+        mTimerWeather.schedule(taskWeather, 0, 5 * 60 * 1000);
     }
 
     void loadSettings() {
@@ -497,6 +499,9 @@ public class FsClockView extends FrameLayout {
         mWeatherText.setTextColor(colorEvents);
         mWeatherImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
         if (mWeatherCityText != null) mWeatherCityText.setTextColor(colorEvents);
+        if (mWeatherLargeTemp != null) mWeatherLargeTemp.setTextColor(colorEvents);
+        if (mWeatherLargeHumidity != null) mWeatherLargeHumidity.setTextColor(colorEvents);
+        if (mWeatherLargeIcon != null) mWeatherLargeIcon.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
 
         // init custom analog color
         if(mSharedPref.getBoolean("own-color-analog-clock-face", false)) {
@@ -826,17 +831,15 @@ public class FsClockView extends FrameLayout {
                 }
                 String cachedTemp = mSharedPref.getString("weather-temp", "");
                 String cachedJson = mSharedPref.getString("weather-cached-json", "");
-                if (!cachedTemp.isEmpty()) {
+                if (!cachedTemp.isEmpty() && mWeatherText != null) {
                     mWeatherText.setText(cachedTemp);
-                } else {
-                    mWeatherText.setText("--");
                 }
                 if (!cachedJson.isEmpty()) {
                     try {
                         WeatherResponse cachedWeather = new Gson().fromJson(cachedJson, WeatherResponse.class);
                         boolean useFahrenheit = mSharedPref.getBoolean("weather-use-fahrenheit", false);
                         String unit = useFahrenheit ? "°F" : "°C";
-                        populateHourlyWeather(cachedWeather, unit);
+                        updateWeatherUI(cachedWeather, unit);
                     } catch (Exception ignored) {}
                 }
                 if (mWeatherCityText != null) {
@@ -845,12 +848,12 @@ public class FsClockView extends FrameLayout {
             }
         });
 
-        // Caching: only fetch if last update was more than 15 minutes ago, and the city hasn't changed
+        // Caching: only fetch if last update was more than 5 minutes ago, and the city hasn't changed
         final long lastUpdate = mSharedPref.getLong("weather-last-update", 0);
         final long now = System.currentTimeMillis();
         final String cachedTemp = mSharedPref.getString("weather-temp", "");
         String cachedCity = mSharedPref.getString("weather-cached-city", "");
-        if (city.equalsIgnoreCase(cachedCity) && now - lastUpdate < 15 * 60 * 1000 && !cachedTemp.isEmpty()) {
+        if (city.equalsIgnoreCase(cachedCity) && now - lastUpdate < 5 * 60 * 1000 && !cachedTemp.isEmpty()) {
             return;
         }
 
@@ -882,8 +885,8 @@ public class FsClockView extends FrameLayout {
                     // Fetch forecast weather
                     final boolean useFahrenheit = mSharedPref.getBoolean("weather-use-fahrenheit", false);
                     final WeatherResponse weather = fetchForecast(lat, lon, useFahrenheit);
-                    if (weather != null && weather.current_weather != null) {
-                        double temp = weather.current_weather.temperature;
+                    if (weather != null && weather.current != null) {
+                        double temp = weather.current.temperature_2m;
                         final String unit = useFahrenheit ? "°F" : "°C";
                         final String tempStr = String.format(Locale.getDefault(), "%.1f%s", temp, unit);
 
@@ -896,8 +899,7 @@ public class FsClockView extends FrameLayout {
                         post(new Runnable() {
                             @Override
                             public void run() {
-                                mWeatherText.setText(tempStr);
-                                populateHourlyWeather(weather, unit);
+                                updateWeatherUI(weather, unit);
                                 if (mWeatherCityText != null) {
                                     mWeatherCityText.setText(city);
                                 }
@@ -911,17 +913,15 @@ public class FsClockView extends FrameLayout {
                         public void run() {
                             String lastTemp = mSharedPref.getString("weather-temp", "");
                             String cachedJson = mSharedPref.getString("weather-cached-json", "");
-                            if (!lastTemp.isEmpty()) {
+                            if (!lastTemp.isEmpty() && mWeatherText != null) {
                                 mWeatherText.setText(lastTemp);
-                            } else {
-                                mWeatherText.setText("--");
                             }
                             if (!cachedJson.isEmpty()) {
                                 try {
                                     WeatherResponse cachedWeather = new Gson().fromJson(cachedJson, WeatherResponse.class);
                                     boolean useFahrenheit = mSharedPref.getBoolean("weather-use-fahrenheit", false);
                                     String unit = useFahrenheit ? "°F" : "°C";
-                                    populateHourlyWeather(cachedWeather, unit);
+                                    updateWeatherUI(cachedWeather, unit);
                                 } catch (Exception ignored) {}
                             }
                             if (mWeatherCityText != null) {
@@ -939,169 +939,38 @@ public class FsClockView extends FrameLayout {
         return Math.round(dp * density);
     }
 
-    private String formatHourString(String isoTime, boolean is24hrs) {
-        try {
-            String hourPart = isoTime.substring(11, 13);
-            int hour = Integer.parseInt(hourPart);
-            if (is24hrs) {
-                return String.format(Locale.getDefault(), "%02d:00", hour);
-            } else {
-                String ampm = hour >= 12 ? " PM" : " AM";
-                int hour12 = hour % 12;
-                if (hour12 == 0) hour12 = 12;
-                return hour12 + ampm;
-            }
-        } catch (Exception e) {
-            return isoTime.substring(11, 16);
-        }
-    }
-
-    private void populateHourlyWeather(WeatherResponse weather, String unit) {
-        if (mWeatherHourlyLayout == null || weather.hourly == null || weather.hourly.time == null || weather.hourly.temperature_2m == null) {
+    private void updateWeatherUI(final WeatherResponse weather, final String unit) {
+        if (weather == null || weather.current == null) {
             return;
         }
 
-        mWeatherHourlyLayout.removeAllViews();
+        post(new Runnable() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void run() {
+                double temp = weather.current.temperature_2m;
+                int humidityVal = weather.current.relative_humidity_2m;
+                int wCode = weather.current.weather_code;
 
-        Calendar cal = Calendar.getInstance();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:00", Locale.US);
-        String currentHourStr = sdf.format(cal.getTime());
+                String tempStr = String.format(Locale.getDefault(), "%.1f%s", temp, unit);
+                String tempLargeStr = String.format(Locale.getDefault(), "%.0f%s", temp, unit);
 
-        int currentIndex = -1;
-        for (int i = 0; i < weather.hourly.time.length; i++) {
-            if (weather.hourly.time[i].substring(0, 13).equalsIgnoreCase(currentHourStr.substring(0, 13))) {
-                currentIndex = i;
-                break;
-            }
-        }
-
-        if (currentIndex == -1) {
-            currentIndex = cal.get(Calendar.HOUR_OF_DAY);
-        }
-
-        int range = 24;
-        int centerPositionInLayout = 0;
-
-        for (int offset = -range; offset <= range; offset++) {
-            int idx = currentIndex + offset;
-            if (idx >= 0 && idx < weather.hourly.temperature_2m.length) {
-                String isoTime = weather.hourly.time[idx];
-                double temp = weather.hourly.temperature_2m[idx];
-                boolean hasWeatherCode = weather.hourly.weather_code != null && weather.hourly.weather_code.length > idx;
-                boolean hasHumidity = weather.hourly.relative_humidity_2m != null && weather.hourly.relative_humidity_2m.length > idx;
-
-                String hourStr = formatHourString(isoTime, mFormat24hrs);
-                if (offset == 0) {
-                    hourStr = "Ahora";
+                if (mWeatherText != null) {
+                    mWeatherText.setText(tempStr);
                 }
-
-                String tempStr = String.format(Locale.getDefault(), "%.0f%s", temp, unit);
-
-                LinearLayout itemLayout = new LinearLayout(getContext());
-                itemLayout.setOrientation(LinearLayout.VERTICAL);
-                itemLayout.setGravity(Gravity.CENTER);
-                itemLayout.setPadding(dpToPx(2), dpToPx(6), dpToPx(2), dpToPx(6));
-
-                TextView tvHour = new TextView(getContext());
-                tvHour.setText(hourStr);
-                tvHour.setGravity(Gravity.CENTER);
-                tvHour.setTextColor(mColorEvents);
-                if (mFontEvents != null) tvHour.setTypeface(mFontEvents);
-                if (offset == 0) {
-                    tvHour.setTextSize(18);
-                    tvHour.setTypeface(mFontEvents, Typeface.BOLD);
-                } else {
-                    tvHour.setTextSize(14);
+                if (mWeatherLargeTemp != null) {
+                    mWeatherLargeTemp.setText(tempLargeStr);
                 }
-                itemLayout.addView(tvHour);
-
-                // Weather Icon
-                if (hasWeatherCode) {
-                    int wCode = weather.hourly.weather_code[idx];
+                if (mWeatherLargeHumidity != null) {
+                    mWeatherLargeHumidity.setText(humidityVal + "%");
+                }
+                if (mWeatherLargeIcon != null) {
                     int iconRes = getWeatherIconResource(wCode);
-                    ImageView ivWeather = new ImageView(getContext());
-                    ivWeather.setImageResource(iconRes);
-                    int iconSize = offset == 0 ? dpToPx(32) : dpToPx(24);
-                    LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(iconSize, iconSize);
-                    iconParams.topMargin = dpToPx(4);
-                    iconParams.bottomMargin = dpToPx(4);
-                    ivWeather.setLayoutParams(iconParams);
-                    ivWeather.setColorFilter(mColorEvents, PorterDuff.Mode.SRC_ATOP);
-                    itemLayout.addView(ivWeather);
-                }
-
-                TextView tvTemp = new TextView(getContext());
-                tvTemp.setText(tempStr);
-                tvTemp.setGravity(Gravity.CENTER);
-                tvTemp.setTextColor(mColorEvents);
-                if (mFontEvents != null) {
-                    tvTemp.setTypeface(mFontEvents, Typeface.BOLD);
-                } else {
-                    tvTemp.setTypeface(null, Typeface.BOLD);
-                }
-                if (offset == 0) {
-                    tvTemp.setTextSize(24);
-                } else {
-                    tvTemp.setTextSize(18);
-                }
-                itemLayout.addView(tvTemp);
-
-                // Humidity
-                if (hasHumidity) {
-                    int humidityVal = weather.hourly.relative_humidity_2m[idx];
-                    TextView tvHumidity = new TextView(getContext());
-                    tvHumidity.setText(humidityVal + "%");
-                    tvHumidity.setGravity(Gravity.CENTER);
-                    tvHumidity.setTextColor(mColorEvents);
-                    if (mFontEvents != null) tvHumidity.setTypeface(mFontEvents);
-                    if (offset == 0) {
-                        tvHumidity.setTextSize(14);
-                        tvHumidity.setTypeface(mFontEvents, Typeface.BOLD);
-                    } else {
-                        tvHumidity.setTextSize(11);
-                    }
-                    LinearLayout.LayoutParams humidityParams = new LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                    humidityParams.topMargin = dpToPx(2);
-                    tvHumidity.setLayoutParams(humidityParams);
-                    itemLayout.addView(tvHumidity);
-                }
-
-                mWeatherHourlyLayout.addView(itemLayout);
-
-                if (offset == 0) {
-                    centerPositionInLayout = mWeatherHourlyLayout.getChildCount() - 1;
+                    mWeatherLargeIcon.setImageResource(iconRes);
+                    mWeatherLargeIcon.setVisibility(View.VISIBLE);
                 }
             }
-        }
-
-        final int targetIdx = centerPositionInLayout;
-        if (mWeatherScrollView != null) {
-            mWeatherScrollView.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (mWeatherHourlyLayout != null) {
-                        int svWidth = mWeatherScrollView.getWidth();
-                        if (svWidth > 0) {
-                            int itemWidth = svWidth / 9;
-                            int childCount = mWeatherHourlyLayout.getChildCount();
-                            for (int i = 0; i < childCount; i++) {
-                                View child = mWeatherHourlyLayout.getChildAt(i);
-                                android.view.ViewGroup.LayoutParams params = child.getLayoutParams();
-                                if (params != null) {
-                                    params.width = itemWidth;
-                                    child.setLayoutParams(params);
-                                }
-                            }
-                            if (childCount > targetIdx) {
-                                int scrollX = (targetIdx - 4) * itemWidth;
-                                mWeatherScrollView.scrollTo(scrollX, 0);
-                            }
-                        }
-                    }
-                }
-            });
-        }
+        });
     }
 
     private int getWeatherIconResource(int weatherCode) {
@@ -1137,17 +1006,11 @@ public class FsClockView extends FrameLayout {
     }
 
     private static class WeatherResponse {
-        CurrentWeather current_weather;
-        Hourly hourly;
-        static class CurrentWeather {
-            double temperature;
-            int weathercode;
-        }
-        static class Hourly {
-            String[] time;
-            double[] temperature_2m;
-            int[] weather_code;
-            int[] relative_humidity_2m;
+        Current current;
+        static class Current {
+            double temperature_2m;
+            int relative_humidity_2m;
+            int weather_code;
         }
     }
 
@@ -1172,7 +1035,7 @@ public class FsClockView extends FrameLayout {
 
     private WeatherResponse fetchForecast(float lat, float lon, boolean useFahrenheit) throws Exception {
         String unitParam = useFahrenheit ? "&temperature_unit=fahrenheit" : "";
-        String urlStr = "http://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true&hourly=temperature_2m,weather_code,relative_humidity_2m&timezone=auto&past_days=1" + unitParam;
+        String urlStr = "http://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto" + unitParam;
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
