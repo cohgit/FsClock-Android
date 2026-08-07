@@ -126,4 +126,13 @@
     <string name="show_weather">Mostrar información del clima</string>
     <string name="weather_city">Nombre de la ciudad</string>
     <string name="use_fahrenheit">Usar Fahrenheit</string>
+    <string name="radio">Radio</string>
+    <string name="show_radio">Mostrar controles de radio</string>
+    <string name="autoplay_radio">Reproducir radio al iniciar</string>
+    <string name="radio_station">Estación de radio</string>
+    <string name="radio_off">Radio Apagada</string>
+    <string name="radio_buffering">Sintonizando...</string>
+    <string name="radio_playing">Reproduciendo</string>
+    <string name="radio_prev">Estación anterior</string>
+    <string name="radio_next">Estación siguiente</string>
 </resources>

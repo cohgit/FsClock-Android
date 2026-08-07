@@ -103,6 +103,15 @@ public class FsClockView extends FrameLayout {
     Typeface mFontEvents;
     int mColorEvents = 0xffffffff;
 
+    View mRadioView;
+    ImageView mRadioPowerImage;
+    ImageView mRadioPrevImage;
+    ImageView mRadioNextImage;
+    TextView mRadioStationText;
+    RadioManager mRadioManager;
+    boolean mShowRadio = true;
+    boolean mAutoPlayRadio = false;
+
     Timer mTimerAnalogClock;
     Timer mTimerCalendarUpdate;
     Timer mTimerCheckEvent;
@@ -155,6 +164,15 @@ public class FsClockView extends FrameLayout {
         mWeatherLargeIcon = findViewById(R.id.imageViewWeatherIcon);
         mWeatherLargeTemp = findViewById(R.id.textViewWeatherTemp);
         mWeatherLargeHumidity = findViewById(R.id.textViewWeatherHumidity);
+
+        // find radio views
+        mRadioView = findViewById(R.id.linearLayoutRadio);
+        mRadioPowerImage = findViewById(R.id.imageViewRadioPower);
+        mRadioPrevImage = findViewById(R.id.imageViewRadioPrev);
+        mRadioNextImage = findViewById(R.id.imageViewRadioNext);
+        mRadioStationText = findViewById(R.id.textViewRadioStation);
+
+        initRadioManager(c);
 
         // init settings
         mSharedPref = c.getSharedPreferences(SettingsActivity.SHARED_PREF_DOMAIN, Context.MODE_PRIVATE);
@@ -503,6 +521,25 @@ public class FsClockView extends FrameLayout {
         if (mWeatherLargeHumidity != null) mWeatherLargeHumidity.setTextColor(colorEvents);
         if (mWeatherLargeIcon != null) mWeatherLargeIcon.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
 
+        // init radio visibility & colors
+        mShowRadio = mSharedPref.getBoolean("show-radio", true);
+        if (mRadioView != null) {
+            mRadioView.setVisibility(mShowRadio ? View.VISIBLE : View.GONE);
+        }
+        if (mRadioStationText != null) mRadioStationText.setTextColor(colorEvents);
+        if (mRadioPowerImage != null) mRadioPowerImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
+        if (mRadioPrevImage != null) mRadioPrevImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
+        if (mRadioNextImage != null) mRadioNextImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
+
+        mAutoPlayRadio = mSharedPref.getBoolean("autoplay-radio", false);
+        int defaultStationIndex = mSharedPref.getInt("radio-default-station", 0);
+        if (mRadioManager != null) {
+            mRadioManager.setStationIndex(defaultStationIndex);
+            if (mAutoPlayRadio && !mRadioManager.isPlaying() && !mRadioManager.isBuffering()) {
+                mRadioManager.play();
+            }
+        }
+
         // init custom analog color
         if(mSharedPref.getBoolean("own-color-analog-clock-face", false)) {
             mClockFace.setColorFilter(mSharedPref.getInt("color-analog-face", 0xffffffff), PorterDuff.Mode.SRC_ATOP);
@@ -797,6 +834,104 @@ public class FsClockView extends FrameLayout {
             mTimerWeather.cancel();
             mTimerWeather.purge();
         }
+        if (mRadioManager != null) {
+            mRadioManager.pause();
+        }
+    }
+
+    private void initRadioManager(Context context) {
+        mRadioManager = new RadioManager(context);
+        mRadioManager.setListener(new RadioManager.OnRadioStateListener() {
+            @Override
+            public void onStateChanged(boolean isPlaying, boolean isBuffering, RadioManager.RadioStation currentStation) {
+                if (mRadioPowerImage != null) {
+                    if (isPlaying || isBuffering) {
+                        mRadioPowerImage.setImageResource(R.drawable.ic_stop_white_24dp);
+                    } else {
+                        mRadioPowerImage.setImageResource(R.drawable.ic_radio_white_24dp);
+                    }
+                }
+                if (mRadioStationText != null && currentStation != null) {
+                    String statusStr = currentStation.getName();
+                    if (isBuffering) {
+                        statusStr += " (" + getContext().getString(R.string.radio_buffering) + ")";
+                    } else if (isPlaying) {
+                        statusStr += " (" + currentStation.getFrequency() + ")";
+                    }
+                    mRadioStationText.setText(statusStr);
+                }
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                Toast.makeText(getContext(), errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        if (mRadioPowerImage != null) {
+            mRadioPowerImage.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mRadioManager != null) {
+                        mRadioManager.togglePlay();
+                    }
+                }
+            });
+        }
+
+        if (mRadioPrevImage != null) {
+            mRadioPrevImage.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mRadioManager != null) {
+                        mRadioManager.previousStation();
+                    }
+                }
+            });
+        }
+
+        if (mRadioNextImage != null) {
+            mRadioNextImage.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mRadioManager != null) {
+                        mRadioManager.nextStation();
+                    }
+                }
+            });
+        }
+
+        if (mRadioStationText != null) {
+            mRadioStationText.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    showRadioStationDialog();
+                }
+            });
+        }
+    }
+
+    private void showRadioStationDialog() {
+        if (mRadioManager == null) return;
+        final java.util.List<RadioManager.RadioStation> stations = mRadioManager.getStations();
+        String[] stationNames = new String[stations.size()];
+        for (int i = 0; i < stations.size(); i++) {
+            stationNames[i] = stations.get(i).getName() + " - " + stations.get(i).getFrequency();
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle(R.string.radio_station);
+        builder.setSingleChoiceItems(stationNames, mRadioManager.getCurrentStationIndex(), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (mRadioManager != null) {
+                    mRadioManager.setStationIndex(which);
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.setNegativeButton(R.string.ok, null);
+        builder.create().show();
     }
 
     protected void resume() {

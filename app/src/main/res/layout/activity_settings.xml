@@ -156,6 +156,47 @@
                     android:layout_width="match_parent"
                     android:layout_height="15dp" />
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/radio"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+
+                <CheckBox
+                    android:id="@+id/checkBoxShowRadio"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/show_radio" />
+
+                <CheckBox
+                    android:id="@+id/checkBoxAutoplayRadio"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/autoplay_radio" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/radio_station"
+                        android:textColor="@color/checkbox_text_color" />
+                    <Spinner
+                        android:id="@+id/spinnerRadioDefaultStation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <Space
+                    android:layout_width="match_parent"
+                    android:layout_height="15dp" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

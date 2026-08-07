@@ -142,6 +142,9 @@ public class BaseSettingsActivity extends AppCompatActivity {
     CheckBox mCheckBoxShowWeather;
     EditText mEditTextWeatherCity;
     CheckBox mCheckBoxWeatherFahrenheit;
+    CheckBox mCheckBoxShowRadio;
+    CheckBox mCheckBoxAutoplayRadio;
+    Spinner mSpinnerRadioDefaultStation;
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -246,6 +249,9 @@ public class BaseSettingsActivity extends AppCompatActivity {
         mCheckBoxShowWeather = findViewById(R.id.checkBoxShowWeather);
         mEditTextWeatherCity = findViewById(R.id.editTextWeatherCity);
         mCheckBoxWeatherFahrenheit = findViewById(R.id.checkBoxWeatherFahrenheit);
+        mCheckBoxShowRadio = findViewById(R.id.checkBoxShowRadio);
+        mCheckBoxAutoplayRadio = findViewById(R.id.checkBoxAutoplayRadio);
+        mSpinnerRadioDefaultStation = findViewById(R.id.spinnerRadioDefaultStation);
 
         // init settings
         mSharedPref = getSharedPreferences(SHARED_PREF_DOMAIN, Context.MODE_PRIVATE);
@@ -285,6 +291,10 @@ public class BaseSettingsActivity extends AppCompatActivity {
         mCheckBoxShowWeather.setChecked(mSharedPref.getBoolean("show-weather", true));
         mEditTextWeatherCity.setText(mSharedPref.getString("weather-city", "Santiago"));
         mCheckBoxWeatherFahrenheit.setChecked(mSharedPref.getBoolean("weather-use-fahrenheit", false));
+        mCheckBoxShowRadio.setChecked(mSharedPref.getBoolean("show-radio", true));
+        mCheckBoxAutoplayRadio.setChecked(mSharedPref.getBoolean("autoplay-radio", false));
+
+        initRadioSpinner();
 
         // init radio button behavior
         mRadioButtonGregorianCalendar.setOnClickListener(new View.OnClickListener() {
@@ -439,6 +449,25 @@ public class BaseSettingsActivity extends AppCompatActivity {
         mCheckBoxShowWeather.setEnabled(state);
         mEditTextWeatherCity.setEnabled(state);
         mCheckBoxWeatherFahrenheit.setEnabled(state);
+        mCheckBoxShowRadio.setEnabled(state);
+        mCheckBoxAutoplayRadio.setEnabled(state);
+        mSpinnerRadioDefaultStation.setEnabled(state);
+    }
+
+    private void initRadioSpinner() {
+        RadioManager rm = new RadioManager(this);
+        List<RadioManager.RadioStation> stations = rm.getStations();
+        List<String> names = new ArrayList<>();
+        for (RadioManager.RadioStation s : stations) {
+            names.add(s.getName() + " (" + s.getFrequency() + ")");
+        }
+        ArrayAdapter<String> dataAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, names);
+        dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mSpinnerRadioDefaultStation.setAdapter(dataAdapter);
+        int defaultIndex = mSharedPref.getInt("radio-default-station", 0);
+        if (defaultIndex >= 0 && defaultIndex < names.size()) {
+            mSpinnerRadioDefaultStation.setSelection(defaultIndex);
+        }
     }
 
     private void initFontSpinner() {
@@ -893,6 +922,9 @@ public class BaseSettingsActivity extends AppCompatActivity {
         editor.putBoolean("show-weather", mCheckBoxShowWeather.isChecked());
         editor.putString("weather-city", mEditTextWeatherCity.getText().toString());
         editor.putBoolean("weather-use-fahrenheit", mCheckBoxWeatherFahrenheit.isChecked());
+        editor.putBoolean("show-radio", mCheckBoxShowRadio.isChecked());
+        editor.putBoolean("autoplay-radio", mCheckBoxAutoplayRadio.isChecked());
+        editor.putInt("radio-default-station", mSpinnerRadioDefaultStation.getSelectedItemPosition());
 
         editor.apply();
     }

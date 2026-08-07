@@ -139,4 +139,13 @@ Roboto Font Copyright (c) Christian Robertson. Licensed under the Apache License
     <string name="show_weather">Show weather info</string>
     <string name="weather_city">City name</string>
     <string name="use_fahrenheit">Use Fahrenheit</string>
+    <string name="radio">Radio</string>
+    <string name="show_radio">Show Radio Controls</string>
+    <string name="autoplay_radio">Auto-play Radio on Start</string>
+    <string name="radio_station">Radio Station</string>
+    <string name="radio_off">Radio Off</string>
+    <string name="radio_buffering">Buffering...</string>
+    <string name="radio_playing">Playing</string>
+    <string name="radio_prev">Previous Station</string>
+    <string name="radio_next">Next Station</string>
 </resources>
