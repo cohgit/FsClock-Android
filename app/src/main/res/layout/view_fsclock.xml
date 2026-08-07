@@ -36,6 +36,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="top"
+            android:layout_marginTop="-24dp"
             android:layout_marginLeft="@dimen/margin_clock"
             android:layout_marginRight="@dimen/margin_clock">
 
@@ -152,21 +153,86 @@
                 android:layout_weight="1"
                 tools:ignore="NestedWeights" />
 
-            <systems.sieber.fsclock.DateView
-                android:id="@+id/textViewDate"
+            <LinearLayout
+                android:id="@+id/linearLayoutDateAndRadio"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_gravity="fill_vertical"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:maxLines="1"
-                android:text="@string/clock_prefilled"
-                android:textAlignment="center"
-                android:textColor="@color/colorDefaultClock"
-                app:autoSizeMaxTextSize="800dp"
-                app:autoSizeMinTextSize="20dp"
-                app:autoSizeStepGranularity="1px"
-                app:autoSizeTextType="uniform" />
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:id="@+id/linearLayoutRadio"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:gravity="center_vertical"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="12dp"
+                    android:orientation="horizontal">
+                    <ImageView
+                        android:id="@+id/imageViewRadioPower"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:layout_gravity="center"
+                        android:layout_marginEnd="4dp"
+                        android:padding="6dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="@drawable/bg_radio_button"
+                        app:srcCompat="@drawable/ic_radio_white_24dp"
+                        android:contentDescription="@string/radio" />
+                    <ImageView
+                        android:id="@+id/imageViewRadioPrev"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_gravity="center"
+                        android:padding="5dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="@drawable/bg_radio_button"
+                        app:srcCompat="@drawable/ic_skip_previous_white_24dp"
+                        android:contentDescription="@string/radio_prev" />
+                    <TextView
+                        android:id="@+id/textViewRadioStation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:gravity="center"
+                        android:layout_marginStart="6dp"
+                        android:layout_marginEnd="6dp"
+                        android:text="Radio"
+                        android:textColor="#FFD54F"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                    <ImageView
+                        android:id="@+id/imageViewRadioNext"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_gravity="center"
+                        android:padding="5dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="@drawable/bg_radio_button"
+                        app:srcCompat="@drawable/ic_skip_next_white_24dp"
+                        android:contentDescription="@string/radio_next" />
+                </LinearLayout>
+
+                <systems.sieber.fsclock.DateView
+                    android:id="@+id/textViewDate"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical|start"
+                    android:maxLines="1"
+                    android:text="@string/clock_prefilled"
+                    android:textColor="@color/colorDefaultClock"
+                    app:autoSizeMaxTextSize="800dp"
+                    app:autoSizeMinTextSize="20dp"
+                    app:autoSizeStepGranularity="1px"
+                    app:autoSizeTextType="uniform" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
@@ -248,60 +314,6 @@
                 android:text="--"
                 android:textColor="@color/colorDefaultClock"
                 android:textSize="20sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/linearLayoutRadio"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-            <ImageView
-                android:id="@+id/imageViewRadioPower"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_gravity="center"
-                android:layout_marginEnd="4dp"
-                android:padding="2dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:srcCompat="@drawable/ic_radio_white_24dp"
-                android:contentDescription="@string/radio" />
-            <ImageView
-                android:id="@+id/imageViewRadioPrev"
-                android:layout_width="26dp"
-                android:layout_height="26dp"
-                android:layout_gravity="center"
-                android:padding="2dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:srcCompat="@drawable/ic_skip_previous_white_24dp"
-                android:contentDescription="@string/radio_prev" />
-            <TextView
-                android:id="@+id/textViewRadioStation"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                android:text="Radio"
-                android:textColor="@color/colorDefaultClock"
-                android:textSize="18sp" />
-            <ImageView
-                android:id="@+id/imageViewRadioNext"
-                android:layout_width="26dp"
-                android:layout_height="26dp"
-                android:layout_gravity="center"
-                android:padding="2dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:srcCompat="@drawable/ic_skip_next_white_24dp"
-                android:contentDescription="@string/radio_next" />
         </LinearLayout>
     </LinearLayout>
 

@@ -526,10 +526,13 @@ public class FsClockView extends FrameLayout {
         if (mRadioView != null) {
             mRadioView.setVisibility(mShowRadio ? View.VISIBLE : View.GONE);
         }
-        if (mRadioStationText != null) mRadioStationText.setTextColor(colorEvents);
-        if (mRadioPowerImage != null) mRadioPowerImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
-        if (mRadioPrevImage != null) mRadioPrevImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
-        if (mRadioNextImage != null) mRadioNextImage.setColorFilter(colorEvents, PorterDuff.Mode.SRC_ATOP);
+        if (mRadioStationText != null) mRadioStationText.setTextColor(Color.parseColor("#FFD54F"));
+        if (mRadioPowerImage != null) {
+            boolean isPlayingOrBuffering = (mRadioManager != null && (mRadioManager.isPlaying() || mRadioManager.isBuffering()));
+            mRadioPowerImage.setColorFilter(Color.parseColor(isPlayingOrBuffering ? "#FF5252" : "#00E676"), PorterDuff.Mode.SRC_IN);
+        }
+        if (mRadioPrevImage != null) mRadioPrevImage.setColorFilter(Color.parseColor("#00E5FF"), PorterDuff.Mode.SRC_IN);
+        if (mRadioNextImage != null) mRadioNextImage.setColorFilter(Color.parseColor("#00E5FF"), PorterDuff.Mode.SRC_IN);
 
         mAutoPlayRadio = mSharedPref.getBoolean("autoplay-radio", false);
         int defaultStationIndex = mSharedPref.getInt("radio-default-station", 0);
@@ -847,9 +850,17 @@ public class FsClockView extends FrameLayout {
                 if (mRadioPowerImage != null) {
                     if (isPlaying || isBuffering) {
                         mRadioPowerImage.setImageResource(R.drawable.ic_stop_white_24dp);
+                        mRadioPowerImage.setColorFilter(Color.parseColor("#FF5252"), PorterDuff.Mode.SRC_IN); // Vibrant Red for Stop
                     } else {
                         mRadioPowerImage.setImageResource(R.drawable.ic_radio_white_24dp);
+                        mRadioPowerImage.setColorFilter(Color.parseColor("#00E676"), PorterDuff.Mode.SRC_IN); // Vibrant Green for Power
                     }
+                }
+                if (mRadioPrevImage != null) {
+                    mRadioPrevImage.setColorFilter(Color.parseColor("#00E5FF"), PorterDuff.Mode.SRC_IN); // Cyan
+                }
+                if (mRadioNextImage != null) {
+                    mRadioNextImage.setColorFilter(Color.parseColor("#00E5FF"), PorterDuff.Mode.SRC_IN); // Cyan
                 }
                 if (mRadioStationText != null && currentStation != null) {
                     String statusStr = currentStation.getName();
